@@ -1,0 +1,16 @@
+{
+  "name": "@gsb/parser",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Site adapters (SUUMO, LIFULL HOME'S, at home, Generic) that turn property HTML into structured data.",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@gsb/shared": "*",
+    "cheerio": "^1.2.0"
+  }
+}

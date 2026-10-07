@@ -1,0 +1,37 @@
+{
+  "name": "giam-sat-bds",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Property Watch — giám sát giá và thông tin bất động sản Nhật Bản (SUUMO, LIFULL HOME'S, at home, URL tùy ý)",
+  "type": "module",
+  "engines": {
+    "node": ">=20.11"
+  },
+  "workspaces": [
+    "packages/shared",
+    "packages/parser",
+    "packages/notifications",
+    "apps/worker",
+    "apps/web"
+  ],
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "dev:worker": "npm run dev -w @gsb/worker",
+    "dev:web": "npm run dev -w @gsb/web",
+    "typecheck": "tsc -p tsconfig.json && npm run typecheck -w @gsb/web",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:rules": "firebase emulators:exec --only firestore --project demo-gsb \"vitest run --config vitest.rules.config.ts\"",
+    "build": "npm run build -w @gsb/web && npm run build -w @gsb/worker",
+    "check": "npm run typecheck && npm test && npm run build"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.2",
+    "@types/node": "^22.20.4",
+    "esbuild": "^0.25.12",
+    "firebase-tools": "^14.27.0",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.7"
+  }
+}

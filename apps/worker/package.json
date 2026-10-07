@@ -1,0 +1,20 @@
+{
+  "name": "@gsb/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Cloud Run monitoring worker: scheduled checks, HTTP API for the web app, notifications.",
+  "scripts": {
+    "dev": "tsx watch --clear-screen=false src/index.ts",
+    "start": "node dist/index.js",
+    "build": "node build.mjs"
+  },
+  "dependencies": {
+    "@gsb/notifications": "*",
+    "@gsb/parser": "*",
+    "@gsb/shared": "*",
+    "firebase-admin": "^13.10.0",
+    "google-auth-library": "^10.9.1",
+    "playwright-core": "1.56.1"
+  }
+}
