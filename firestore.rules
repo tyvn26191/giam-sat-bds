@@ -1,0 +1,149 @@
+rules_version = '2';
+
+// Property Watch — security model
+// - Only approved accounts (custom claim role = member | admin) can use the app.
+// - Users see only their own properties, history, logs and notifications; admins see all.
+// - Monitoring results (price, status, history, logs) are written by the worker (Admin SDK)
+//   only. Clients may edit their own settings and the user-editable fields of a property.
+// - Creating / deleting properties and changing URLs go through the worker API, which
+//   validates URLs against SSRF and enforces per-user limits.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function role() { return request.auth.token.get('role', ''); }
+    function isAdmin() { return signedIn() && role() == 'admin'; }
+    function isMember() { return signedIn() && (role() == 'member' || role() == 'admin'); }
+    function uid() { return request.auth.uid; }
+
+    function optString(v, max) { return v == null || (v is string && v.size() <= max); }
+    function optNumber(v, min, max) { return v == null || ((v is int || v is float) && v >= min && v <= max); }
+    function groupOk(g, i) { return g.size() <= i || (g[i] is string && g[i].size() >= 1 && g[i].size() <= 40); }
+
+    // ---------------------------------------------------------------- users/{uid}
+    function validSettings(s) {
+      return s is map
+        && s.keys().hasAll(['defaultIntervalMin', 'timezone', 'telegram', 'email', 'notifyTypes', 'minSeverity'])
+        && s.keys().hasOnly(['defaultIntervalMin', 'timezone', 'telegram', 'email', 'notifyTypes', 'minSeverity'])
+        && s.defaultIntervalMin in [15, 30, 60]
+        && s.timezone in ['Asia/Tokyo', 'Asia/Ho_Chi_Minh', 'UTC']
+        && s.telegram is map && s.telegram.keys().hasOnly(['enabled', 'chatId']) && s.telegram.enabled is bool
+        && (s.telegram.chatId == null || (s.telegram.chatId is string && s.telegram.chatId.matches('^(-?[0-9]{1,20}|@[A-Za-z][A-Za-z0-9_]{4,31})$')))
+        && s.email is map && s.email.keys().hasOnly(['enabled', 'to']) && s.email.enabled is bool
+        && (s.email.to == null || (s.email.to is string && s.email.to.size() <= 254 && s.email.to.matches('^[^ @<>(),;:"]+@[^ @<>(),;:"]+[.][A-Za-z]{2,}$')))
+        && validNotifyTypes(s.notifyTypes)
+        && s.minSeverity in ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
+    }
+    function validNotifyTypes(n) {
+      return n is map
+        && n.keys().hasOnly(['PRICE_DECREASE', 'PRICE_INCREASE', 'PRICE_ALERT', 'REMOVED', 'RESTORED', 'POSSIBLE_RELIST',
+                             'FIELD_CHANGED', 'MINOR_CHANGED', 'IMAGE_CHANGED', 'BLOCKED', 'ERROR'])
+        && n.get('PRICE_DECREASE', true) is bool && n.get('PRICE_INCREASE', true) is bool && n.get('PRICE_ALERT', true) is bool
+        && n.get('REMOVED', true) is bool && n.get('RESTORED', true) is bool && n.get('POSSIBLE_RELIST', true) is bool
+        && n.get('FIELD_CHANGED', true) is bool && n.get('MINOR_CHANGED', true) is bool && n.get('IMAGE_CHANGED', true) is bool
+        && n.get('BLOCKED', true) is bool && n.get('ERROR', true) is bool;
+    }
+
+    match /users/{userId} {
+      allow get: if isMember() && (userId == uid() || isAdmin());
+      allow list: if isAdmin();
+      allow create: if isMember() && userId == uid()
+        && request.resource.data.keys().hasOnly(['email', 'displayName', 'settings', 'createdAt', 'updatedAt'])
+        && request.resource.data.email == request.auth.token.email
+        && optString(request.resource.data.displayName, 100)
+        && validSettings(request.resource.data.settings)
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+      allow update: if isMember() && userId == uid()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'settings', 'updatedAt'])
+        && optString(request.resource.data.displayName, 100)
+        && validSettings(request.resource.data.settings)
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if false;
+    }
+
+    // ---------------------------------------------------------------- properties/{id}
+    function validSelectors(s) {
+      return s == null || (s is map
+        && s.keys().hasOnly(['price', 'title', 'address', 'content'])
+        && optString(s.get('price', null), 300) && optString(s.get('title', null), 300)
+        && optString(s.get('address', null), 300) && optString(s.get('content', null), 300));
+    }
+    function validAlerts(a) {
+      return a is map
+        && a.keys().hasAll(['priceAtOrBelow', 'dropAmountAtLeast', 'dropPercentAtLeast', 'only'])
+        && a.keys().hasOnly(['priceAtOrBelow', 'dropAmountAtLeast', 'dropPercentAtLeast', 'only'])
+        && optNumber(a.priceAtOrBelow, 1, 100000000000)
+        && optNumber(a.dropAmountAtLeast, 1, 100000000000)
+        && optNumber(a.dropPercentAtLeast, 0.01, 100)
+        && a.only is bool;
+    }
+    function validPropertySettings(d) {
+      return optString(d.name, 200)
+        && d.groups is list && d.groups.size() <= 10
+        && groupOk(d.groups, 0) && groupOk(d.groups, 1) && groupOk(d.groups, 2) && groupOk(d.groups, 3) && groupOk(d.groups, 4)
+        && groupOk(d.groups, 5) && groupOk(d.groups, 6) && groupOk(d.groups, 7) && groupOk(d.groups, 8) && groupOk(d.groups, 9)
+        && d.intervalMin in [15, 30, 60]
+        && d.enabled is bool
+        && d.pausedByAll is bool
+        && d.monitorMode in ['IMPORTANT', 'FULL']
+        && validSelectors(d.selectors)
+        && d.notify is map && d.notify.keys().hasAll(['telegram', 'email']) && d.notify.keys().hasOnly(['telegram', 'email'])
+        && d.notify.telegram is bool && d.notify.email is bool
+        && d.track is map && d.track.keys().hasAll(['price', 'content', 'image']) && d.track.keys().hasOnly(['price', 'content', 'image'])
+        && d.track.price is bool && d.track.content is bool && d.track.image is bool
+        && validAlerts(d.alerts)
+        && optString(d.note, 1000);
+    }
+
+    match /properties/{propertyId} {
+      allow get: if isAdmin() || (isMember() && resource.data.ownerId == uid());
+      allow list: if isAdmin() || (isMember() && resource.data.ownerId == uid());
+      allow update: if isMember() && resource.data.ownerId == uid()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+             'name', 'groups', 'intervalMin', 'enabled', 'pausedByAll', 'monitorMode', 'selectors',
+             'notify', 'track', 'alerts', 'note', 'updatedAt'])
+        && validPropertySettings(request.resource.data)
+        && request.resource.data.updatedAt == request.time;
+      allow create, delete: if false;
+
+      match /{sub}/{docId} {
+        allow read: if sub in ['snapshots', 'priceHistory', 'changes']
+          && (isAdmin() || (isMember() && get(/databases/$(database)/documents/properties/$(propertyId)).data.ownerId == uid()));
+        allow write: if false;
+      }
+    }
+
+    // ---------------------------------------------------------------- logs (worker-written)
+    match /notificationLogs/{id} {
+      allow read: if isAdmin() || (isMember() && resource.data.ownerId == uid());
+      allow write: if false;
+    }
+    match /monitorLogs/{id} {
+      allow read: if isAdmin() || (isMember() && resource.data.ownerId == uid());
+      allow write: if false;
+    }
+    match /monitorRuns/{id} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+    match /domains/{host} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    // ---------------------------------------------------------------- system config (admin)
+    match /system/{docId} {
+      allow read: if isAdmin() && docId == 'config';
+      allow create, update: if isAdmin() && docId == 'config'
+        && request.resource.data.keys().hasOnly(['paused', 'maxConcurrentChecks', 'perDomainConcurrency', 'retentionDays', 'updatedAt', 'updatedBy'])
+        && request.resource.data.paused is bool
+        && request.resource.data.maxConcurrentChecks is int && request.resource.data.maxConcurrentChecks >= 1 && request.resource.data.maxConcurrentChecks <= 16
+        && request.resource.data.perDomainConcurrency is int && request.resource.data.perDomainConcurrency >= 1 && request.resource.data.perDomainConcurrency <= 2
+        && request.resource.data.retentionDays is int && request.resource.data.retentionDays >= 7 && request.resource.data.retentionDays <= 3650
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.updatedBy == uid();
+      allow delete: if false;
+    }
+  }
+}

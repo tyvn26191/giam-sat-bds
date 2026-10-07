@@ -1,0 +1,76 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "properties",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "enabled", "order": "ASCENDING" },
+        { "fieldPath": "nextCheckAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "monitorLogs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "ownerId", "order": "ASCENDING" },
+        { "fieldPath": "startedAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "monitorLogs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "ownerId", "order": "ASCENDING" },
+        { "fieldPath": "propertyId", "order": "ASCENDING" },
+        { "fieldPath": "startedAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "notificationLogs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "ownerId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "notificationLogs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "ownerId", "order": "ASCENDING" },
+        { "fieldPath": "propertyId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "notificationLogs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": [
+    {
+      "collectionGroup": "snapshots",
+      "fieldPath": "at",
+      "indexes": [
+        { "order": "ASCENDING", "queryScope": "COLLECTION" },
+        { "order": "DESCENDING", "queryScope": "COLLECTION" },
+        { "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" }
+      ]
+    },
+    { "collectionGroup": "snapshots", "fieldPath": "normalizedText", "indexes": [] },
+    { "collectionGroup": "snapshots", "fieldPath": "fields", "indexes": [] },
+    { "collectionGroup": "snapshots", "fieldPath": "hashes", "indexes": [] },
+    { "collectionGroup": "changes", "fieldPath": "fieldChanges", "indexes": [] },
+    { "collectionGroup": "changes", "fieldPath": "textDiff", "indexes": [] },
+    { "collectionGroup": "properties", "fieldPath": "fields", "indexes": [] },
+    { "collectionGroup": "properties", "fieldPath": "hashes", "indexes": [] },
+    { "collectionGroup": "properties", "fieldPath": "matches", "indexes": [] },
+    { "collectionGroup": "properties", "fieldPath": "priceStats", "indexes": [] },
+    { "collectionGroup": "notificationLogs", "fieldPath": "payload", "indexes": [] },
+    { "collectionGroup": "domains", "fieldPath": "robots", "indexes": [] }
+  ]
+}
