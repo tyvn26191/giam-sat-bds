@@ -142,6 +142,8 @@ export interface PropertyDoc extends PropertySettings {
   nextCheckAt: number;
   createdAt: number;
   updatedAt: number;
+  /** Set when paused by "Pause all" so "Resume all" only resumes those. */
+  pausedByAll: boolean;
   /** +1 on every committed check; used for optimistic concurrency and notification dedupe. */
   revision: number;
 }

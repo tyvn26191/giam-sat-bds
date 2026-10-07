@@ -15,6 +15,10 @@
     "@gsb/shared": "*",
     "firebase-admin": "^13.10.0",
     "google-auth-library": "^10.9.1",
-    "playwright-core": "1.56.1"
+    "playwright-core": "1.56.1",
+    "nodemailer": "^7.0.13"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.12"
   }
 }
