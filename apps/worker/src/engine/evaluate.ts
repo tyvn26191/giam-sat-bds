@@ -230,6 +230,13 @@ function evaluateFailure(
     if (code === 'HTTP_429' && obs.retryAfterMs) nextCheckAt = Math.max(nextCheckAt, now + obs.retryAfterMs);
   }
 
+  // A property that never worked has no state to protect from false alarms: show the problem
+  // right away, but do not push a notification (the user already saw it in "Test URL").
+  if (!everSucceeded) {
+    status = kind === 'REMOVED' ? 'NOT_FOUND' : kind;
+    changeType = null;
+  }
+
   const changes = changeType
     ? [makeChange(prev, ctx, revision, changeType, status, { message: `${code}: ${message}`.slice(0, 500), oldPrice: prev.price })]
     : [];
@@ -284,7 +291,7 @@ function evaluateOk(prev: PropertyDoc, obs: Observation, ctx: EvalContext, commo
   // ---- status recovery
   if (!first && (prev.status === 'REMOVED' || prev.status === 'NOT_FOUND')) {
     changes.push(makeChange(prev, ctx, revision, 'RESTORED', 'ACTIVE', { newPrice: observedPrice, message: 'Tin xuất hiện lại' }));
-  } else if (prev.status === 'ERROR' || prev.status === 'BLOCKED') {
+  } else if (!first && (prev.status === 'ERROR' || prev.status === 'BLOCKED')) {
     changes.push(makeChange(prev, ctx, revision, 'RECOVERED', 'ACTIVE', { message: `Hết ${prev.status}` }));
   }
 

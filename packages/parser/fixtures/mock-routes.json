@@ -1,0 +1,8 @@
+{
+  "https://suumo.jp/ikkodate/aichi/sc_nishio/nc_76543210/": { "file": "suumo-example.html" },
+  "https://suumo.jp/ikkodate/aichi/sc_nishio/nc_79990001/": { "file": "suumo-price-down.html" },
+  "https://www.homes.co.jp/kodate/b-35003710000001/": { "file": "homes-example.html" },
+  "https://www.athome.co.jp/mansion/6981234567/": { "file": "athome-example.html" },
+  "https://www.athome.co.jp/kodate/1111111111/": { "file": "athome-blocked.html" },
+  "https://www.example-fudosan.jp/property/1002": { "file": "generic-jsonld.html" }
+}

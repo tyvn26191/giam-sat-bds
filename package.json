@@ -23,7 +23,8 @@
     "test:watch": "vitest",
     "test:rules": "firebase emulators:exec --only firestore --project demo-gsb \"vitest run --config vitest.rules.config.ts\"",
     "build": "npm run build -w @gsb/web && npm run build -w @gsb/worker",
-    "check": "npm run typecheck && npm test && npm run build"
+    "check": "npm run typecheck && npm test && npm run build",
+    "dev:mock": "node scripts/mock.mjs"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^5.0.2",

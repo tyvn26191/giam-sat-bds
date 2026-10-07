@@ -225,11 +225,17 @@ describe('monitoring engine — status', () => {
     expect(env.telegram.sent).toHaveLength(2);
   });
 
-  it('a URL that never worked is NOT_FOUND (no alert)', async () => {
+  it('a URL that never worked shows NOT_FOUND / BLOCKED / ERROR at once, without alerts', async () => {
     const env = makeDeps();
     const id = await addProperty(env.store, env.clock);
-    const s = await check(env, id);
-    expect(s.status).toBe('NOT_FOUND');
+    expect((await check(env, id)).status).toBe('NOT_FOUND');
+    const url = 'https://www.athome.co.jp/kodate/1111111111/';
+    const b = await addProperty(env.store, env.clock, url);
+    env.fetcher.set(url, { status: 200, file: 'athome-blocked.html' });
+    expect((await check(env, b)).status).toBe('BLOCKED');
+    const e = await addProperty(env.store, env.clock, 'https://www.example-fudosan.jp/x');
+    env.fetcher.set('https://www.example-fudosan.jp/x', { status: 503, html: 'maintenance' });
+    expect((await check(env, e)).status).toBe('ERROR');
     expect(env.telegram.sent).toHaveLength(0);
   });
 
