@@ -6,8 +6,8 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 source deploy/env.sh
 
-PROJECT_NUMBER=$(gcloud projects describe "$PROJECT_ID" --format='value(projectNumber)')
-URL="https://${SERVICE}-${PROJECT_NUMBER}.${REGION}.run.app"
+URL=$(gcloud run services describe "$SERVICE" --region="$REGION" --format='value(status.url)')
+[ -n "$URL" ] || { echo "Service $SERVICE not found — run ./deploy/03-deploy-worker.sh first"; exit 1; }
 
 upsert_job() {
   local name="$1" schedule="$2" path="$3" verb=create

@@ -27,16 +27,27 @@ echo "== Building $IMAGE"
 gcloud builds submit --config deploy/cloudbuild.worker.yaml \
   --substitutions="_IMAGE=${IMAGE},_RUNTIME_IMAGE=${RUNTIME_IMAGE},_RUNTIME_USER=${RUNTIME_USER}" .
 
-SECRETS="TELEGRAM_BOT_TOKEN=TELEGRAM_BOT_TOKEN:latest"
+# Mount only the secrets that exist (02-secrets.sh lets you skip some).
+SECRETS=""
+add_secret() {
+  if gcloud secrets describe "$1" >/dev/null 2>&1; then
+    SECRETS="${SECRETS:+$SECRETS,}$1=$1:latest"
+  else
+    echo "  (secret $1 not found — skipped)"
+  fi
+}
+add_secret TELEGRAM_BOT_TOKEN
 case "$EMAIL_PROVIDER" in
-  smtp) SECRETS="$SECRETS,SMTP_PASS=SMTP_PASS:latest" ;;
-  resend) SECRETS="$SECRETS,RESEND_API_KEY=RESEND_API_KEY:latest" ;;
-  sendgrid) SECRETS="$SECRETS,SENDGRID_API_KEY=SENDGRID_API_KEY:latest" ;;
-  mailgun) SECRETS="$SECRETS,MAILGUN_API_KEY=MAILGUN_API_KEY:latest" ;;
+  smtp) add_secret SMTP_PASS ;;
+  resend) add_secret RESEND_API_KEY ;;
+  sendgrid) add_secret SENDGRID_API_KEY ;;
+  mailgun) add_secret MAILGUN_API_KEY ;;
 esac
+SECRET_FLAGS=()
+[ -n "$SECRETS" ] && SECRET_FLAGS=(--set-secrets="$SECRETS")
 
 # "^@^" switches the env-var separator to "@" so values may contain commas.
-ENV_VARS="^@^APP_URL=https://${PROJECT_ID}.web.app@ADMIN_EMAILS=${ADMIN_EMAILS}@MEMBER_EMAILS=${MEMBER_EMAILS}"
+ENV_VARS="^@^GOOGLE_CLOUD_PROJECT=${PROJECT_ID}@APP_URL=https://${PROJECT_ID}.web.app@ADMIN_EMAILS=${ADMIN_EMAILS}@MEMBER_EMAILS=${MEMBER_EMAILS}"
 ENV_VARS="${ENV_VARS}@TASKS_AUDIENCE=${URL}@SCHEDULER_SA_EMAIL=${SCHEDULER_SA}@ENABLE_BROWSER=${ENABLE_BROWSER}"
 ENV_VARS="${ENV_VARS}@EMAIL_PROVIDER=${EMAIL_PROVIDER}@EMAIL_FROM=${EMAIL_FROM}@SMTP_HOST=${SMTP_HOST}@SMTP_PORT=${SMTP_PORT}"
 ENV_VARS="${ENV_VARS}@SMTP_USER=${SMTP_USER}@MAILGUN_DOMAIN=${MAILGUN_DOMAIN}@ARTIFACT_BUCKET=${ARTIFACT_BUCKET}"
@@ -50,8 +61,13 @@ gcloud run deploy "$SERVICE" \
   --allow-unauthenticated --ingress=all \
   --cpu=1 --memory="$MEMORY" --concurrency=10 --timeout=600 \
   --min-instances=0 --max-instances=2 \
-  --set-env-vars="$ENV_VARS" --set-secrets="$SECRETS"
+  --set-env-vars="$ENV_VARS" "${SECRET_FLAGS[@]}"
 
-echo "Deployed: $(gcloud run services describe "$SERVICE" --region="$REGION" --format='value(status.url)')"
-curl -fsS "$URL/healthz" && echo
+# Older projects may expose a different URL form; accept both as OIDC audience.
+STATUS_URL=$(gcloud run services describe "$SERVICE" --region="$REGION" --format='value(status.url)')
+if [ "$STATUS_URL" != "$URL" ]; then
+  gcloud run services update "$SERVICE" --region="$REGION" --update-env-vars="^@^TASKS_AUDIENCE=${URL},${STATUS_URL}"
+fi
+echo "Deployed: $STATUS_URL"
+curl -fsS "$STATUS_URL/healthz" && echo
 echo "Done. Next: ./deploy/04-scheduler.sh"
