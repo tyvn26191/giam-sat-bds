@@ -1,0 +1,13 @@
+# Upload only what the worker image needs to Cloud Build.
+.git
+.github
+**/node_modules
+**/dist
+docs/
+tests/
+apps/web/src/
+apps/web/public/
+*.log
+.env
+.env.*
+deploy/env.sh

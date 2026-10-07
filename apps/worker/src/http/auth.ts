@@ -32,7 +32,7 @@ export async function verifyUser(auth: Auth, header: string | undefined): Promis
 
 export interface TaskAuthConfig {
   mode: 'oidc' | 'none';
-  audience: string | null;
+  audience: string[];
   serviceAccount: string | null;
 }
 
@@ -43,7 +43,7 @@ export class TaskAuth {
   async verify(header: string | undefined): Promise<boolean> {
     if (this.cfg.mode === 'none') return true; // local development only (refused on Cloud Run)
     const token = bearer(header);
-    if (!token || !this.cfg.audience || !this.cfg.serviceAccount) return false;
+    if (!token || this.cfg.audience.length === 0 || !this.cfg.serviceAccount) return false;
     try {
       const ticket = await this.client.verifyIdToken({ idToken: token, audience: this.cfg.audience });
       const p = ticket.getPayload();

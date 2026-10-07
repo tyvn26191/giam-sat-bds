@@ -26,7 +26,8 @@ export interface WorkerConfig {
   adminEmails: string[];
   memberEmails: string[];
   tasksAuth: 'oidc' | 'none';
-  tasksAudience: string | null;
+  /** Accepted OIDC audiences (Cloud Run URL forms). */
+  tasksAudience: string[];
   schedulerServiceAccount: string | null;
 
   telegramBotToken: string | null;
@@ -78,8 +79,8 @@ export function loadConfig(env: Env = process.env): WorkerConfig {
 
     maxConcurrentChecks: int(env.MAX_CONCURRENT_CHECKS, 4, 1, 16),
     perDomainConcurrency: int(env.PER_DOMAIN_CONCURRENCY, 1, 1, 2),
-    domainMinSpacingMs: int(env.DOMAIN_MIN_SPACING_MS, 3000, 1000, 60_000),
-    domainJitterMs: int(env.DOMAIN_JITTER_MS, 2000, 0, 30_000),
+    domainMinSpacingMs: int(env.DOMAIN_MIN_SPACING_MS, 2000, 1000, 60_000),
+    domainJitterMs: int(env.DOMAIN_JITTER_MS, 1000, 0, 30_000),
     runBudgetMs: int(env.RUN_BUDGET_MS, 240_000, 10_000, 3_000_000),
     maxPerRun: int(env.MAX_PROPERTIES_PER_RUN, 300, 1, 2000),
     maxPropertiesPerUser: int(env.MAX_PROPERTIES_PER_USER, 500, 1, 5000),
@@ -87,7 +88,7 @@ export function loadConfig(env: Env = process.env): WorkerConfig {
     adminEmails: list(env.ADMIN_EMAILS),
     memberEmails: list(env.MEMBER_EMAILS),
     tasksAuth: env.TASKS_AUTH === 'none' ? 'none' : 'oidc',
-    tasksAudience: env.TASKS_AUDIENCE || null,
+    tasksAudience: (env.TASKS_AUDIENCE ?? '').split(',').map((s) => s.trim()).filter(Boolean),
     schedulerServiceAccount: env.SCHEDULER_SA_EMAIL?.toLowerCase() || null,
 
     telegramBotToken: env.TELEGRAM_BOT_TOKEN || null,
@@ -107,7 +108,7 @@ export function loadConfig(env: Env = process.env): WorkerConfig {
   };
   if (isCloudRun) {
     if (cfg.tasksAuth === 'none') throw new Error('TASKS_AUTH=none is not allowed on Cloud Run');
-    if (!cfg.tasksAudience || !cfg.schedulerServiceAccount) throw new Error('TASKS_AUDIENCE and SCHEDULER_SA_EMAIL are required on Cloud Run');
+    if (cfg.tasksAudience.length === 0 || !cfg.schedulerServiceAccount) throw new Error('TASKS_AUDIENCE and SCHEDULER_SA_EMAIL are required on Cloud Run');
     if (cfg.mockFetchDir) throw new Error('MOCK_FETCH_DIR is for local development only');
     if (cfg.devTickSeconds) throw new Error('DEV_TICK_SECONDS is for local development only');
   }

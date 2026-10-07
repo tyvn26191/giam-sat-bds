@@ -1,0 +1,23 @@
+# Optional: run the production worker image locally against the Firebase emulators that
+# `npm run dev` (or `npx firebase emulators:start --only auth,firestore --project demo-gsb`)
+# started on the host. Useful to try the Playwright tier without installing Chromium.
+#   docker compose up --build worker
+services:
+  worker:
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile
+    ports:
+      - '8788:8080'
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      GOOGLE_CLOUD_PROJECT: demo-gsb
+      FIRESTORE_EMULATOR_HOST: host.docker.internal:8185
+      FIREBASE_AUTH_EMULATOR_HOST: host.docker.internal:9199
+      TASKS_AUTH: none
+      NOTIFY_DRY_RUN: 'true'
+      ENABLE_BROWSER: 'true'
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'

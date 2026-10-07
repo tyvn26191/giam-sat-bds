@@ -1,0 +1,23 @@
+# Cloud Build: docker build of apps/worker/Dockerfile (context = repository root).
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -f
+      - apps/worker/Dockerfile
+      - --build-arg
+      - RUNTIME_IMAGE=${_RUNTIME_IMAGE}
+      - --build-arg
+      - RUNTIME_USER=${_RUNTIME_USER}
+      - -t
+      - ${_IMAGE}
+      - .
+images:
+  - ${_IMAGE}
+substitutions:
+  _IMAGE: ''
+  _RUNTIME_IMAGE: mcr.microsoft.com/playwright:v1.56.1-noble
+  _RUNTIME_USER: pwuser
+options:
+  logging: CLOUD_LOGGING_ONLY
+timeout: 1200s

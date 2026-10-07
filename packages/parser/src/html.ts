@@ -67,6 +67,9 @@ export function extractLabelPairs($: CheerioAPI): Map<FieldKey | 'price', string
   });
   // "所在地：愛知県…" in a single element
   $('li,p,span,div').each((_, el) => {
+    // Cheap pre-filter: only elements whose own text nodes contain a colon.
+    const kids = (el as { children?: { type: string; data?: string }[] }).children ?? [];
+    if (!kids.some((k) => k.type === 'text' && /[：:]/.test(k.data ?? ''))) return;
     const $el = $(el);
     if ($el.children().length > 3) return;
     const t = cellText($el);

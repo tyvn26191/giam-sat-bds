@@ -3,9 +3,13 @@
 .git
 .github
 .firebase
-apps/web
+apps/web/src
+apps/web/public
+apps/web/index.html
 docs
 tests
+scripts
 *.log
 .env
 .env.*
+deploy/env.sh
