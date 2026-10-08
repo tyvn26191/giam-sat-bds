@@ -8,8 +8,21 @@ param(
   [string]$Service = 'gsb-worker'
 )
 $ErrorActionPreference = 'Stop'
-$gcloud = Join-Path $env:LOCALAPPDATA 'Google\google-cloud-sdk\bin\gcloud.cmd'
-if (-not (Test-Path $gcloud)) { $gcloud = 'gcloud' }
+$candidates = @(
+  (Join-Path $env:LOCALAPPDATA 'Google\google-cloud-sdk\bin\gcloud.cmd'),
+  (Join-Path $env:USERPROFILE 'AppData\Local\Google\google-cloud-sdk\bin\gcloud.cmd'),
+  'C:\Users\admin\AppData\Local\Google\google-cloud-sdk\bin\gcloud.cmd',
+  'C:\Program Files (x86)\Google\Cloud SDK\google-cloud-sdk\bin\gcloud.cmd',
+  'C:\Program Files\Google\Cloud SDK\google-cloud-sdk\bin\gcloud.cmd'
+)
+$gcloud = $candidates | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
+if (-not $gcloud) {
+  $cmd = Get-Command gcloud.cmd, gcloud -ErrorAction SilentlyContinue | Select-Object -First 1
+  if ($cmd) { $gcloud = $cmd.Source } else { throw 'Khong tim thay gcloud. Bao lai cho Claude.' }
+}
+Write-Host "gcloud: $gcloud"
+& $gcloud auth list --filter=status:ACTIVE --format="value(account)"
+if ($LASTEXITCODE -ne 0) { throw 'gcloud chua chay duoc. Bao lai cho Claude.' }
 $sa = "gsb-worker@$Project.iam.gserviceaccount.com"
 
 $secure = Read-Host 'Dan Telegram bot token (an khi go) roi Enter' -AsSecureString
