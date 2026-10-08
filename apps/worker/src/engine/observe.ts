@@ -1,6 +1,6 @@
 // Fetch a property page (HTTP first, browser only when needed) and classify the result.
 
-import { decodeHtml, type AdapterRegistry, type ParseResult, type PageInput } from '@gsb/parser';
+import { decodeHtml, detectBlocked, type AdapterRegistry, type ParseResult, type PageInput } from '@gsb/parser';
 import { validatePublicUrl, type CustomSelectors, type FetchMethod, type MonitorMode } from '@gsb/shared';
 import { FetchError, type PageFetcher } from '../fetch';
 import { classifyNodeError } from '../fetch/errors';
@@ -116,6 +116,15 @@ export async function observe(target: ObserveTarget, deps: ObserveDeps, opts: Ob
     if (status === 304) return base({ outcome: 'NOT_MODIFIED', httpCache: cache, ...extra });
     if (status === 404 || status === 410) return base({ outcome: 'REMOVED', error: { code: `HTTP_${status}`, message: `HTTP ${status}`, transient: false }, ...extra });
     if (status === 401 || status === 403) return base({ outcome: 'BLOCKED', error: { code: `HTTP_${status}`, message: `HTTP ${status} — truy cập bị từ chối`, transient: false }, ...extra });
+    // Bot walls often answer 405/406/451 or another 4xx with a JavaScript challenge page.
+    const challenge = status >= 400 && detectBlocked(page.html, '');
+    if (status === 405 || status === 406 || status === 451 || (challenge && status !== 404 && status !== 410 && status !== 429)) {
+      return base({
+        outcome: 'BLOCKED',
+        error: { code: 'BOT_PROTECTION', message: `HTTP ${status} — website chặn truy cập tự động (bot protection${challenge ? `: ${challenge}` : ''}). Hệ thống không vượt qua.`, transient: false },
+        ...extra,
+      });
+    }
     if (status === 429) {
       return fail('HTTP_429', 'HTTP 429 Too Many Requests', true, { ...extra, retryAfterMs: parseRetryAfter(retryAfter, deps.now()) ?? 30 * 60_000 });
     }

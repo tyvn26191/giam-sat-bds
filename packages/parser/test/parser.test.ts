@@ -228,3 +228,10 @@ describe('textDiff', () => {
     expect(textDiff('a\nb\nc', 'a\nc\nd')).toEqual({ added: ['d'], removed: ['b'] });
   });
 });
+
+describe('bot challenge interstitial', () => {
+  it('recognises the random-script challenge page', () => {
+    const r = parseProperty(page('https://www.athome.co.jp/kodate/1194102416/', 'athome-challenge-405.html'));
+    expect(r.state).toBe('BLOCKED');
+  });
+});

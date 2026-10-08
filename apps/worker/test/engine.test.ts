@@ -258,6 +258,17 @@ describe('monitoring engine — status', () => {
     expect(env.fetcher.requests.length).toBe(3); // no retry storm
   });
 
+  it('HTTP 405 JavaScript challenge (at home) is BLOCKED with a clear reason, not ERROR', async () => {
+    const env = makeDeps();
+    const url = 'https://www.athome.co.jp/kodate/1194102416/';
+    const id = await addProperty(env.store, env.clock, url);
+    env.fetcher.set(url, { status: 405, file: 'athome-challenge-405.html' });
+    const s = await check(env, id);
+    expect(s).toMatchObject({ outcome: 'BLOCKED', status: 'BLOCKED' });
+    expect(s.error?.code).toBe('BOT_PROTECTION');
+    expect(env.fetcher.requests).toHaveLength(1); // no retry, no bypass attempt
+  });
+
   it('robots.txt disallow → BLOCKED immediately, page never fetched', async () => {
     const env = makeDeps();
     const id = await addProperty(env.store, env.clock);

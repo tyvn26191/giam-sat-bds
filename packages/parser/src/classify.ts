@@ -12,12 +12,17 @@ const BLOCK_MARKERS: RegExp[] = [
   /(アクセスが集中|アクセスを制限|アクセス制限|不正なアクセス|ロボットではありません|画像認証|しばらく時間をおいてから再度|自動プログラムによるアクセス)/,
 ];
 
+// Interstitial challenge: a tiny noindex page whose only script has a random lowercase path
+// (e.g. <script src="/eadjaxlayqcmrfpo">), as served by some WAF / bot-management products.
+const CHALLENGE_SCRIPT = /<script[^>]+src=["']\/[a-z]{12,32}["']/i;
+
 export function detectBlocked(html: string, title: string): string | null {
   const head = `${title}\n${html.slice(0, 200_000)}`;
   for (const re of BLOCK_MARKERS) {
     const m = re.exec(head);
     if (m) return m[0].slice(0, 80);
   }
+  if (html.length < 20_000 && /noindex/i.test(html) && CHALLENGE_SCRIPT.test(html)) return 'JavaScript challenge page';
   return null;
 }
 
