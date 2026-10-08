@@ -97,7 +97,7 @@ Nhập token ở dấu nhắc ẩn (không lưu vào lịch sử shell, không g
 
 Cloud Build dựng image từ `apps/worker/Dockerfile` (Playwright image nếu `ENABLE_BROWSER=true`, ngược lại
 `node:22-bookworm-slim`), rồi deploy `gsb-worker`: 1 vCPU, 2 GiB (hoặc 512 MiB), concurrency 10, timeout 600s,
-min 0 / max 2 instance, secrets từ Secret Manager. Kết thúc bằng `curl …/healthz` → `{"ok":true}`.
+min 0 / max 2 instance, secrets từ Secret Manager. Kết thúc bằng `curl …/health` → `{"ok":true}`.
 
 > Nếu tổ chức Google Workspace chặn `allUsers` (policy *Domain restricted sharing*), `--allow-unauthenticated`
 > sẽ lỗi. Cần cho phép ngoại lệ cho project này — Firebase Hosting gọi Cloud Run như khách công khai; bảo mật do

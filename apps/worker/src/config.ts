@@ -91,7 +91,7 @@ export function loadConfig(env: Env = process.env): WorkerConfig {
     tasksAudience: (env.TASKS_AUDIENCE ?? '').split(',').map((s) => s.trim()).filter(Boolean),
     schedulerServiceAccount: env.SCHEDULER_SA_EMAIL?.toLowerCase() || null,
 
-    telegramBotToken: env.TELEGRAM_BOT_TOKEN || null,
+    telegramBotToken: env.TELEGRAM_BOT_TOKEN?.trim() || null,
     notifyDryRun: bool(env.NOTIFY_DRY_RUN, false),
 
     artifactBucket: env.ARTIFACT_BUCKET || null,

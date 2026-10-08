@@ -46,12 +46,12 @@ esac
 SECRET_FLAGS=()
 [ -n "$SECRETS" ] && SECRET_FLAGS=(--set-secrets="$SECRETS")
 
-# "^@^" switches the env-var separator to "@" so values may contain commas.
-ENV_VARS="^@^GOOGLE_CLOUD_PROJECT=${PROJECT_ID}@APP_URL=https://${PROJECT_ID}.web.app@ADMIN_EMAILS=${ADMIN_EMAILS}@MEMBER_EMAILS=${MEMBER_EMAILS}"
-ENV_VARS="${ENV_VARS}@TASKS_AUDIENCE=${URL}@SCHEDULER_SA_EMAIL=${SCHEDULER_SA}@ENABLE_BROWSER=${ENABLE_BROWSER}"
-ENV_VARS="${ENV_VARS}@EMAIL_PROVIDER=${EMAIL_PROVIDER}@EMAIL_FROM=${EMAIL_FROM}@SMTP_HOST=${SMTP_HOST}@SMTP_PORT=${SMTP_PORT}"
-ENV_VARS="${ENV_VARS}@SMTP_USER=${SMTP_USER}@MAILGUN_DOMAIN=${MAILGUN_DOMAIN}@ARTIFACT_BUCKET=${ARTIFACT_BUCKET}"
-ENV_VARS="${ENV_VARS}@ENABLE_SCREENSHOTS=${SCREENSHOTS}@SAVE_HTML_ON_CHANGE=${SAVE_HTML}@LOG_CHECKS=all@LOG_RETENTION_DAYS=14"
+# "^|^" switches the env-var separator to "|" so values may contain commas and @.
+ENV_VARS="^|^GOOGLE_CLOUD_PROJECT=${PROJECT_ID}|APP_URL=https://${PROJECT_ID}.web.app|ADMIN_EMAILS=${ADMIN_EMAILS}|MEMBER_EMAILS=${MEMBER_EMAILS}"
+ENV_VARS="${ENV_VARS}|TASKS_AUDIENCE=${URL}|SCHEDULER_SA_EMAIL=${SCHEDULER_SA}|ENABLE_BROWSER=${ENABLE_BROWSER}"
+ENV_VARS="${ENV_VARS}|EMAIL_PROVIDER=${EMAIL_PROVIDER}|EMAIL_FROM=${EMAIL_FROM}|SMTP_HOST=${SMTP_HOST}|SMTP_PORT=${SMTP_PORT}"
+ENV_VARS="${ENV_VARS}|SMTP_USER=${SMTP_USER}|MAILGUN_DOMAIN=${MAILGUN_DOMAIN}|ARTIFACT_BUCKET=${ARTIFACT_BUCKET}"
+ENV_VARS="${ENV_VARS}|ENABLE_SCREENSHOTS=${SCREENSHOTS}|SAVE_HTML_ON_CHANGE=${SAVE_HTML}|LOG_CHECKS=all|LOG_RETENTION_DAYS=14"
 
 echo "== Deploying $SERVICE"
 # --allow-unauthenticated: Firebase Hosting forwards /api/** here. Every route authenticates
@@ -66,8 +66,8 @@ gcloud run deploy "$SERVICE" \
 # Older projects may expose a different URL form; accept both as OIDC audience.
 STATUS_URL=$(gcloud run services describe "$SERVICE" --region="$REGION" --format='value(status.url)')
 if [ "$STATUS_URL" != "$URL" ]; then
-  gcloud run services update "$SERVICE" --region="$REGION" --update-env-vars="^@^TASKS_AUDIENCE=${URL},${STATUS_URL}"
+  gcloud run services update "$SERVICE" --region="$REGION" --update-env-vars="^|^TASKS_AUDIENCE=${URL},${STATUS_URL}"
 fi
 echo "Deployed: $STATUS_URL"
-curl -fsS "$STATUS_URL/healthz" && echo
+curl -fsS "$STATUS_URL/health" && echo
 echo "Done. Next: ./deploy/04-scheduler.sh"

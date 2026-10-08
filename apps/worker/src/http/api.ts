@@ -123,6 +123,8 @@ export function buildRoutes(d: ApiDeps): Route[] {
     runCheck(rec, d.engine, { trigger, runId: `${trigger.toLowerCase()}_${rec.id}_${d.now()}`, inlineRetry: false, deadline: deadline() });
 
   return [
+    // Cloud Run reserves /healthz at its front end; /health is the reachable one.
+    { method: 'GET', path: '/health', guard: 'public', handler: async () => ({ ok: true }) },
     { method: 'GET', path: '/healthz', guard: 'public', handler: async () => ({ ok: true }) },
 
     { method: 'GET', path: '/api/me', guard: 'user', rate: 30, handler: async ({ user }) => me(user!) },
