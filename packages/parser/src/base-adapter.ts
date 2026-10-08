@@ -14,7 +14,7 @@ import {
   type SiteId,
 } from '@gsb/shared';
 import { detectBlocked, detectNeedsBrowser, detectRemovedStrong, detectRemovedWeak, redirectedAway } from './classify';
-import { absoluteUrl, bodyText, clean, extractJsonLd, extractLabelPairs, extractMeta, ldTypes, selectText } from './html';
+import { absoluteUrl, bodyText, clean, extractJsonLd, extractLabelPairs, extractMeta, ldTypes, selectOwnText, selectText } from './html';
 import { normalizePageText } from './normalize';
 import type {
   PageInput,
@@ -219,7 +219,7 @@ export abstract class BaseAdapter implements PropertySiteAdapter {
 
     // 3) Site-specific selectors, then regex fallbacks (lower confidence).
     if (candidates.length === 0) {
-      const site = selectText($, this.hints.priceSelectors);
+      const site = selectOwnText($, this.hints.priceSelectors);
       if (site) push(site.text, this.hints.labelConfidence - 0.05, `site:${site.selector}`);
     }
     if (candidates.length === 0) {
@@ -274,7 +274,7 @@ export abstract class BaseAdapter implements PropertySiteAdapter {
     if (custom) return { value: custom.text, confidence: 0.95, source: `selector:${custom.selector}` };
     const label = ctx.labels.get('address')?.[0];
     if (label) return { value: label, confidence: this.hints.labelConfidence, source: 'label:所在地' };
-    const site = selectText($, this.hints.addressSelectors);
+    const site = selectOwnText($, this.hints.addressSelectors, 100);
     if (site) return { value: site.text, confidence: 0.85, source: `site:${site.selector}` };
     for (const obj of ctx.jsonLd) {
       const a = obj.address as unknown;

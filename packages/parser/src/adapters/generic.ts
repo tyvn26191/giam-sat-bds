@@ -1,4 +1,6 @@
+import type { CheerioAPI } from 'cheerio';
 import { BaseAdapter } from '../base-adapter';
+import type { ParseContext } from '../types';
 
 /**
  * Fallback for any site without a dedicated adapter: JSON-LD, meta / OpenGraph, labelled
@@ -8,7 +10,7 @@ export class GenericAdapter extends BaseAdapter {
   readonly id = 'GENERIC' as const;
   readonly name = 'Generic';
   protected override hints = {
-    priceSelectors: ['[class*="price"] [class*="num"]', '[class*="price"]', '[id*="price"]'],
+    priceSelectors: ['#price', '[id*="price"]', '[itemprop="price"]', '[class*="price"] [class*="num"]', '[class*="price"]'],
     titleSelectors: ['h1'],
     addressSelectors: ['[class*="address"]', '[itemprop="address"]'],
     imageSelectors: [],
@@ -18,5 +20,10 @@ export class GenericAdapter extends BaseAdapter {
 
   canHandle(): boolean {
     return true;
+  }
+
+  /** Fallback: a long number at the end of the URL path (…/detail/713791962). */
+  override extractPropertyId(url: URL, $?: CheerioAPI, ctx?: ParseContext): string | null {
+    return super.extractPropertyId(url, $, ctx) ?? /\/(\d{6,})\/?$/.exec(url.pathname)?.[1] ?? null;
   }
 }

@@ -235,3 +235,16 @@ describe('bot challenge interstitial', () => {
     expect(r.state).toBe('BLOCKED');
   });
 });
+
+describe('sibling label/value markup and other-listing blocks', () => {
+  const url = 'https://www.sample-home.example.jp/buy/detail/713791962';
+  const r = parseProperty(page(url, 'generic-sibling-labels.html'));
+  it('reads <span>価格</span><span id="price">… and ignores 値下げ物件 / similar listings', () => {
+    expect(r.price?.value).toBe(29_900_000);
+    expect(r.price!.confidence).toBeGreaterThanOrEqual(0.9);
+    expect(r.needsReview).toBe(false);
+    expect(r.title?.value).toBe('西尾市中畑町 D号棟');
+    expect(r.address?.value).toBe('西尾市中畑町宮東22-1');
+    expect(r.propertyCode).toBe('713791962');
+  });
+});
